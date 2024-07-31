@@ -34,7 +34,7 @@
                 const dataURL = canvas.toDataURL('image/jpeg');
 
                 // Envoi de l'image au serveur
-                const response = await fetch('/upload-image', {
+                const response = await fetch('citation-fb-chatgpt-2.vercel.app/upload', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
